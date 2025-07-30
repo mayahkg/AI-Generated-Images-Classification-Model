@@ -13,22 +13,28 @@ def load_data(paths, image_size, classes):
     ids = []
     cls = []
 
-    print('Reading training images')
-
-    # Getting the Image Paths
+    print(f'Reading images from {paths}')
     for fld in classes:
         index = classes.index(fld)
-        print('Loading {} files (Index: {})'.format(fld, index))
-        path = os.path.join(paths, fld, '*g')
-        files = glob.glob(path)
+        print(f'Loading {fld} files (Index: {index})')
+        path_jpg = os.path.join(paths, fld, '*.[jJ][pP][gG]')  # Matches .jpg, .JPG
+        path_png = os.path.join(paths, fld, '*.[pP][nN][gG]')  # Matches .png, .PNG
+        files = glob.glob(path_jpg)
+        files.extend(glob.glob(path_png))
+        print(f'Found {len(files)} files in {os.path.join(paths, fld)}')
 
-        # Resizing the Images
+        if not files:
+            print(f"Warning: No image files found in {os.path.join(paths, fld)}")
+
         for fl in files:
             image = cv2.imread(fl)
+            if image is None:
+                print(f"Warning: Failed to load image {fl}")
+                continue
+            # Convert BGR to RGB
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = cv2.resize(image, (image_size, image_size), cv2.INTER_LINEAR)
             images.append(image)
-
-            # One-Hot Encoding
             label = np.zeros(len(classes))
             label[index] = 1.0
             labels.append(label)
@@ -36,7 +42,9 @@ def load_data(paths, image_size, classes):
             ids.append(flbase)
             cls.append(fld)
 
-    # Turning into Numpy Arrays
+    if not images:
+        raise ValueError(f"No valid images loaded from {paths}. Check directory structure and file formats.")
+
     images = np.array(images)
     labels = np.array(labels)
     ids = np.array(ids)
